@@ -13,10 +13,13 @@ CheckPoint NFT is a smart contract system that enables game developers to create
   - World Name
   - Level Number
   - Level Percentage
-  - Player Score
-  - Difficulty Level
-  - Achievement Timestamps
-  - Special Powers
+  - Score
+  - Health
+  - Shield
+  - Weapons
+  - Time Played
+  - Kills
+  - Boosters
 - **Authorization System**: Only approved game worlds can mint new checkpoint NFTs
 - **OpenSea Compatible**: Follows OpenSea metadata standards for optimal marketplace integration
 - **Animated GIF Support**: Displays checkpoint achievements with animated graphics
