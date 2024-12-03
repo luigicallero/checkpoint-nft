@@ -24,6 +24,19 @@ CheckPoint NFT is a smart contract system that enables game developers to create
 - **OpenSea Compatible**: Follows OpenSea metadata standards for optimal marketplace integration
 - **Animated GIF Support**: Displays checkpoint achievements with animated graphics
 
+## Value Descriptions
+
+- **World Name**: The name of the game world where the checkpoint is located. Useful for identifying the specific environment or universe in which progress was made.
+- **Level Number**: Indicates the exact level within the game where the checkpoint was created.
+- **Level Percentage**: Tracks how far the player has progressed within a specific level, represented as a percentage.
+- **Score**: The player's accumulated points at the time the checkpoint was minted or updated.
+- **Health**: The player's remaining health value when the checkpoint was saved.
+- **Souls**: Represents the total number of lives the player has left. Like in Mario Bros, losing all your lives forces you to start over.
+- **Weapons**: A record of the player's equipped or collected weapons at the checkpoint.
+- **Time Played**: The total amount of time the player has spent in the game up to this checkpoint.
+- **Kills**: The number of enemies defeated by the player at the time of the checkpoint.
+- **Boosters**: Active or unlocked bonuses that enhance the player's abilities or performance.
+
 ## Technical Stack
 
 - Solidity ^0.8.13
