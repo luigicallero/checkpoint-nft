@@ -37,6 +37,66 @@ CheckPoint NFT is a smart contract system that enables game developers to create
 - **Kills**: The number of enemies defeated by the player at the time of the checkpoint.
 - **Boosters**: Active or unlocked bonuses that enhance the player's abilities or performance.
 
+
+## Recommended Usage in Game Worlds (Smart Contracts)
+
+```solidity
+
+    // Checkpoint update function
+    function triggerCheckpointUpdate(uint256 tokenId) external onlyActivePlayer {
+        require(msg.sender == checkpointNFT.ownerOf(tokenId), "Only token owner");
+        
+        // Get current game state for the player
+        (
+            string memory worldName,
+            uint256 levelNumber,
+            uint256 levelPercentage,
+            uint256 playerScore,
+            uint256 health,
+            uint256 shield,
+            string[] memory weapons,
+            uint256 timePlayed,
+            uint256 kills,
+            string[] memory boosters,
+            string memory imageURI
+        ) = getCurrentGameState(msg.sender);
+
+        // Update the checkpoint
+        checkpointNFT.updateCheckpointData(
+            tokenId,
+            worldName,
+            levelNumber,
+            levelPercentage,
+            playerScore,
+            health,
+            shield,
+            weapons,
+            timePlayed,
+            kills,
+            boosters,
+            imageURI
+        );
+    }
+
+    function getCurrentGameState(address player) internal view returns (
+        string memory worldName,
+        uint256 levelNumber,
+        uint256 levelPercentage,
+        uint256 playerScore,
+        uint256 health,
+        uint256 shield,
+        string[] memory weapons,
+        uint256 timePlayed,
+        uint256 kills,
+        string[] memory boosters,
+        string memory imageURI
+    ) {
+        // Implementation to get current game state
+        // This should be implemented based on your game's specific logic
+    }
+
+```
+
 ## Technical Stack
 
 - Solidity ^0.8.13
