@@ -9,6 +9,7 @@ contract CheckPointNFTTest is Test {
     address public owner;
     address public user1;
     address public user2;
+    string constant BASE_IMAGE_URI = "ipfs://QmQxYG2QAngFrGt3DRbtZUfGS5rL9B1ztGeZgM42K1Xvqg";
 
     function setUp() public {
         owner = address(this);
@@ -16,7 +17,7 @@ contract CheckPointNFTTest is Test {
         user2 = makeAddr("user2");
         
         // Deploy the NFT contract with a base URI
-        nft = new CheckPointNFT("https://api.example.com/token/");
+        nft = new CheckPointNFT(BASE_IMAGE_URI);
         
         // Fund test users
         vm.deal(user1, 10 ether);

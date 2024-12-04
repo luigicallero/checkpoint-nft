@@ -23,10 +23,10 @@ contract CheckPointNFT is ERC721, Ownable {
         uint256 health;
         uint256 shield;
         string[] weapons;
+        string[] items;
         uint256 timePlayed;
         uint256 kills;
-        string[] boosters;
-        string imageURI;
+        uint256 boosters;
     }
 
     // Mapping from token ID to checkpoint data
@@ -43,7 +43,9 @@ contract CheckPointNFT is ERC721, Ownable {
     }
 
     // Input validation constants
-    uint256 private constant MAX_ARRAY_LENGTH = 20;  // Maximum items in weapons/boosters arrays
+    uint256 private constant MAX_WEAPONS_ARRAY_LENGTH = 20;  // Maximum items in weapons arrays
+    uint256 private constant MAX_ITEMS_ARRAY_LENGTH = 1000;  // Maximum items in items arrays
+    uint256 private constant MAX_BOOSTERS = 1000;  // Maximum boosters arrays
     uint256 private constant MAX_STRING_LENGTH = 100; // Maximum characters in strings
     uint256 private constant MAX_HEALTH = 10000;
     uint256 private constant MAX_SHIELD = 10000;
@@ -70,10 +72,10 @@ contract CheckPointNFT is ERC721, Ownable {
         uint256 health,
         uint256 shield,
         string[] memory weapons,
+        string[] memory items,
         uint256 timePlayed,
         uint256 kills,
-        string[] memory boosters,
-        string memory imageURI
+        uint256 boosters
     ) external returns (uint256) {
         require(authorizedWorlds[msg.sender], "Only authorized worlds can mint checkpoints");
         
@@ -88,10 +90,10 @@ contract CheckPointNFT is ERC721, Ownable {
             health: health,
             shield: shield,
             weapons: weapons,
+            items: items,
             timePlayed: timePlayed,
             kills: kills,
-            boosters: boosters,
-            imageURI: imageURI
+            boosters: boosters
         });
 
         return tokenId;
@@ -106,15 +108,6 @@ contract CheckPointNFT is ERC721, Ownable {
         return _baseTokenURI;
     }
 
-    function setBaseURI(string memory newBaseURI) external onlyOwner {
-        _baseTokenURI = newBaseURI;
-    }
-
-    function updateCheckpointImage(uint256 tokenId, string memory newImageURI) external {
-        require(msg.sender == ownerOf(tokenId), "Only token owner can update image");
-        checkpoints[tokenId].imageURI = newImageURI;
-    }
-
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_ownerOf(tokenId) != address(0), "Token does not exist");
         CheckpointData memory checkpoint = checkpoints[tokenId];
@@ -127,7 +120,7 @@ contract CheckPointNFT is ERC721, Ownable {
                 '", "description": "Game checkpoint in ', 
                 checkpoint.worldName,
                 '", "image": "', 
-                checkpoint.imageURI,
+                _baseURI(),  // Use the base URI for image
                 '", "attributes": [',
                     '{"trait_type": "Level", "value": ', checkpoint.levelNumber.toString(), '},',
                     '{"trait_type": "Progress", "value": ', checkpoint.levelPercentage.toString(), '},',
@@ -150,30 +143,30 @@ contract CheckPointNFT is ERC721, Ownable {
         uint256 health,
         uint256 shield,
         string[] memory weapons,
+        string[] memory items,
         uint256 timePlayed,
         uint256 kills,
-        string[] memory boosters,
-        string memory imageURI
+        uint256 boosters
     ) external nonReentrant {
         require(authorizedWorlds[msg.sender], "Only authorized worlds can update checkpoints");
         require(tx.origin == ownerOf(tokenId), "Transaction must be initiated by token owner");
         
         // Input validation
         require(bytes(worldName).length <= MAX_STRING_LENGTH, "World name too long");
-        require(bytes(imageURI).length <= MAX_STRING_LENGTH, "Image URI too long");
         require(levelNumber <= MAX_LEVEL, "Level number too high");
         require(levelPercentage <= 100, "Invalid level percentage");
         require(health <= MAX_HEALTH, "Health value too high");
         require(shield <= MAX_SHIELD, "Shield value too high");
-        require(weapons.length <= MAX_ARRAY_LENGTH, "Too many weapons");
-        require(boosters.length <= MAX_ARRAY_LENGTH, "Too many boosters");
+        require(weapons.length <= MAX_WEAPONS_ARRAY_LENGTH, "Too many weapons");
+        require(items.length <= MAX_ITEMS_ARRAY_LENGTH, "Too many items");
+        require(boosters <= MAX_BOOSTERS, "Too many boosters");
 
         // Validate array contents
         for(uint i = 0; i < weapons.length; i++) {
             require(bytes(weapons[i]).length <= MAX_STRING_LENGTH, "Weapon name too long");
         }
-        for(uint i = 0; i < boosters.length; i++) {
-            require(bytes(boosters[i]).length <= MAX_STRING_LENGTH, "Booster name too long");
+        for(uint i = 0; i < items.length; i++) {
+            require(bytes(items[i]).length <= MAX_STRING_LENGTH, "Item name too long");
         }
         
         checkpoints[tokenId] = CheckpointData({
@@ -184,10 +177,10 @@ contract CheckPointNFT is ERC721, Ownable {
             health: health,
             shield: shield,
             weapons: weapons,
+            items: items,
             timePlayed: timePlayed,
             kills: kills,
-            boosters: boosters,
-            imageURI: imageURI
+            boosters: boosters
         });
 
         emit CheckpointUpdated(tokenId, msg.sender);

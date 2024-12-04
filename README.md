@@ -20,6 +20,7 @@ CheckPoint NFT is a smart contract system that enables game developers to create
   - Time Played
   - Kills
   - Boosters
+  - Items
 - **Authorization System**: Only approved game worlds can mint new checkpoint NFTs
 - **OpenSea Compatible**: Follows OpenSea metadata standards for optimal marketplace integration
 - **Animated GIF Support**: Displays checkpoint achievements with animated graphics
@@ -36,7 +37,7 @@ CheckPoint NFT is a smart contract system that enables game developers to create
 - **Time Played**: The total amount of time the player has spent in the game up to this checkpoint.
 - **Kills**: The number of enemies defeated by the player at the time of the checkpoint.
 - **Boosters**: Active or unlocked bonuses that enhance the player's abilities or performance.
-
+- **Items**: A record of the player's collected or equipped items at the time of the checkpoint.
 
 ## Recommended Usage in Game Worlds (Smart Contracts)
 
@@ -58,6 +59,7 @@ CheckPoint NFT is a smart contract system that enables game developers to create
             uint256 timePlayed,
             uint256 kills,
             string[] memory boosters,
+            string[] memory items,
             string memory imageURI
         ) = getCurrentGameState(msg.sender);
 
@@ -74,6 +76,7 @@ CheckPoint NFT is a smart contract system that enables game developers to create
             timePlayed,
             kills,
             boosters,
+            items,
             imageURI
         );
     }
@@ -89,6 +92,7 @@ CheckPoint NFT is a smart contract system that enables game developers to create
         uint256 timePlayed,
         uint256 kills,
         string[] memory boosters,
+        string[] memory items,
         string memory imageURI
     ) {
         // Implementation to get current game state
