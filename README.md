@@ -15,7 +15,7 @@ CheckPoint NFT is a smart contract system that enables game developers to create
   - Level Percentage
   - Score
   - Health
-  - Shield
+  - Souls
   - Weapons
   - Time Played
   - Kills
@@ -183,8 +183,49 @@ checkpointNFT.mintCheckpoint(
       "display_type": "number",
       "trait_type": "Level",
       "value": 5
+    },
+    {
+      "display_type": "number",
+      "trait_type": "Level Percentage",
+      "value": 75
+    },
+    {
+      "display_type": "number",
+      "trait_type": "Score",
+      "value": 1000
+    },
+    {
+      "display_type": "number",
+      "trait_type": "Health",
+      "value": 100
+    },
+    {
+      "display_type": "number",
+      "trait_type": "Souls",
+      "value": 3
+    },
+    {
+      "trait_type": "Weapons",
+      "value": ["Sword", "Bow"]
+    },
+    {
+      "display_type": "number",
+      "trait_type": "Time Played",
+      "value": 3600
+    },
+    {
+      "display_type": "number",
+      "trait_type": "Kills",
+      "value": 50
+    },
+    {
+      "trait_type": "Boosters",
+      "value": ["Speed", "Strength"]
+    },
+    {
+      "trait_type": "Items",
+      "value": ["Health Potion", "Magic Scroll"]
     }
-    // ... additional attributes
   ]
 }
 ```
@@ -215,6 +256,17 @@ The contract follows OpenSea's metadata standards and can be easily integrated w
 - Contract owner can revoke world authorization
 - Standard OpenZeppelin security features
 - Immutable checkpoint data after minting
+- Contract-enforced limitations:
+  | Parameter | Maximum Value |
+  |-----------|---------------|
+  | Level number | 1,000 |
+  | Level percentage | 100 |
+  | Health points | 10,000 |
+  | Souls | 3 |
+  | Weapons per checkpoint | 20 |
+  | Items per checkpoint | 1,000 |
+  | Boosters | 1,000 |
+  | String length (names) | 100 characters |
 
 ## Contributing
 

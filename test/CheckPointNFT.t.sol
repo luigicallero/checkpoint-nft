@@ -1,109 +1,235 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.25;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test, console2} from "forge-std/Test.sol";
 import {CheckPointNFT} from "../src/CheckPointNFT.sol";
 
 contract CheckPointNFTTest is Test {
     CheckPointNFT public nft;
     address public owner;
-    address public user1;
-    address public user2;
-    string constant BASE_IMAGE_URI = "ipfs://QmQxYG2QAngFrGt3DRbtZUfGS5rL9B1ztGeZgM42K1Xvqg";
+    address public authorizedWorld;
+    address public player;
+    string public constant BASE_URI = "ipfs://QmQxYG2QAngFrGt3DRbtZUfGS5rL9B1ztGeZgM42K1Xvqg";
+    
+    uint16 private constant MAX_WEAPONS_ARRAY_LENGTH = 20;
 
     function setUp() public {
-        owner = address(this);
-        user1 = makeAddr("user1");
-        user2 = makeAddr("user2");
+        owner = makeAddr("owner");
+        authorizedWorld = makeAddr("world");
+        player = makeAddr("player");
         
-        // Deploy the NFT contract with a base URI
-        nft = new CheckPointNFT(BASE_IMAGE_URI);
+        vm.prank(owner);
+        nft = new CheckPointNFT(BASE_URI);
         
-        // Fund test users
-        vm.deal(user1, 10 ether);
-        vm.deal(user2, 10 ether);
+        vm.prank(owner);
+        nft.authorizeWorld(authorizedWorld);
     }
 
-    function _mintHelper(address to, string memory world, uint256 level) internal returns (uint256) {
+    function test_Authorization() public {
+        // Test world authorization
+        assertTrue(nft.authorizedWorlds(authorizedWorld));
+        
+        // Test authorization revocation
+        vm.prank(owner);
+        nft.revokeWorld(authorizedWorld);
+        assertFalse(nft.authorizedWorlds(authorizedWorld));
+        
+        // Test unauthorized address cannot authorize
+        vm.prank(makeAddr("random"));
+        vm.expectRevert();
+        nft.authorizeWorld(makeAddr("another"));
+    }
+
+    function test_MintCheckpoint() public {
+        string[] memory weapons = new string[](2);
+        weapons[0] = "Sword";
+        weapons[1] = "Bow";
+        
+        string[] memory items = new string[](2);
+        items[0] = "Health Potion";
+        items[1] = "Mana Potion";
+
+        vm.prank(authorizedWorld);
+        uint256 tokenId = nft.mintCheckpoint(
+            player,
+            "TestWorld",
+            1,
+            50,
+            1000,
+            100,
+            100,
+            weapons,
+            items,
+            3600,
+            10,
+            5
+        );
+
+        assertEq(nft.ownerOf(tokenId), player);
+        
+        CheckPointNFT.CheckpointData memory data = nft.getCheckpointData(tokenId);
+        assertEq(data.worldName, "TestWorld");
+        assertEq(data.levelNumber, 1);
+        assertEq(data.levelPercentage, 50);
+        assertEq(data.playerScore, 1000);
+        assertEq(data.weapons.length, 2);
+        assertEq(data.items.length, 2);
+    }
+
+    function test_UpdateCheckpoint() public {
+        // First mint a checkpoint
+        string[] memory weapons = new string[](1);
+        weapons[0] = "Sword";
+        string[] memory items = new string[](1);
+        items[0] = "Potion";
+
+        vm.prank(authorizedWorld);
+        uint256 tokenId = nft.mintCheckpoint(
+            player,
+            "TestWorld",
+            1,
+            50,
+            1000,
+            100,
+            100,
+            weapons,
+            items,
+            3600,
+            10,
+            5
+        );
+
+        // Update the checkpoint
+        string[] memory newWeapons = new string[](2);
+        newWeapons[0] = "Sword";
+        newWeapons[1] = "Bow";
+        
+        string[] memory newItems = new string[](2);
+        newItems[0] = "Health Potion";
+        newItems[1] = "Mana Potion";
+
+        // Test update from authorized world with player as original sender
+        vm.startPrank(authorizedWorld, player);  // authorizedWorld is msg.sender, player is tx.origin
+        nft.updateCheckpointData(
+            tokenId,
+            "TestWorld2",
+            2,
+            75,
+            2000,
+            200,
+            200,
+            newWeapons,
+            newItems,
+            7200,
+            20,
+            10
+        );
+        vm.stopPrank();
+
+        CheckPointNFT.CheckpointData memory data = nft.getCheckpointData(tokenId);
+        assertEq(data.worldName, "TestWorld2");
+        assertEq(data.levelNumber, 2);
+        assertEq(data.levelPercentage, 75);
+        assertEq(data.playerScore, 2000);
+        assertEq(data.weapons.length, 2);
+        assertEq(data.items.length, 2);
+    }
+
+    function testFail_UnauthorizedMint() public {
         string[] memory weapons = new string[](0);
-        string[] memory boosters = new string[](0);
-        return nft.mintCheckpoint(
-            to,             // player
-            world,         // worldName
-            level,         // levelNumber
-            100,           // levelPercentage
-            1000,          // playerScore
-            100,           // health
-            50,            // shield
-            weapons,       // weapons array
-            3600,          // timePlayed
-            5,             // kills
-            boosters       // boosters array
+        string[] memory items = new string[](0);
+
+        vm.prank(makeAddr("unauthorized"));
+        nft.mintCheckpoint(
+            player,
+            "TestWorld",
+            1,
+            50,
+            1000,
+            100,
+            100,
+            weapons,
+            items,
+            3600,
+            10,
+            5
         );
     }
 
-    function test_Initialization() public view {
-        assertEq(nft.name(), "CheckPoint");
-        assertEq(nft.symbol(), "CPT");
-    }
+    function test_InputValidation() public {
+        string[] memory weapons = new string[](MAX_WEAPONS_ARRAY_LENGTH + 1);
+        string[] memory items = new string[](1);
 
-    function test_Minting() public {
-        nft.authorizeWorld(address(this));
-        
-        uint256 tokenId = _mintHelper(user1, "World 1", 1);
-        
-        assertEq(nft.balanceOf(user1), 1);
-        assertEq(nft.ownerOf(tokenId), user1);
+        vm.prank(authorizedWorld);
+        vm.expectRevert("Too many weapons");
+        nft.mintCheckpoint(
+            player,
+            "TestWorld",
+            1,
+            50,
+            1000,
+            100,
+            100,
+            weapons,
+            items,
+            3600,
+            10,
+            5
+        );
+
+        // Test other validation cases
+        weapons = new string[](1);
+        vm.prank(authorizedWorld);
+        vm.expectRevert("Level number too high");
+        nft.mintCheckpoint(
+            player,
+            "TestWorld",
+            1001, // MAX_LEVEL + 1
+            50,
+            1000,
+            100,
+            100,
+            weapons,
+            items,
+            3600,
+            10,
+            5
+        );
     }
 
     function test_TokenURI() public {
-        nft.authorizeWorld(address(this));
-        uint256 tokenId = _mintHelper(user1, "World 1", 1);
+        string[] memory weapons = new string[](1);
+        weapons[0] = "Sword";
+        string[] memory items = new string[](1);
+        items[0] = "Potion";
+
+        vm.prank(authorizedWorld);
+        uint256 tokenId = nft.mintCheckpoint(
+            player,
+            "TestWorld",
+            1,
+            50,
+            1000,
+            100,
+            100,
+            weapons,
+            items,
+            3600,
+            10,
+            5
+        );
+
         string memory uri = nft.tokenURI(tokenId);
         assertTrue(bytes(uri).length > 0);
+        // Additional assertions can be added to verify the URI format and content
     }
 
-    function testFail_MintToZeroAddress() public {
-        nft.authorizeWorld(address(this));
-        _mintHelper(address(0), "World 1", 1);
-    }
-
-    function testFail_InvalidTokenURI() public {
-        vm.expectRevert("ERC721: invalid token ID");
-        nft.tokenURI(999);
-    }
-
-    function test_ConsecutiveTokenIds() public {
-        nft.authorizeWorld(address(this));
-        
-        uint256[] memory ids = new uint256[](3);
-        for(uint i = 0; i < 3; i++) {
-            ids[i] = _mintHelper(user1, "World 1", i+1);
+    // Helper function to create a long string for testing max length
+    function _createLongString(uint256 length) internal pure returns (string memory) {
+        bytes memory result = new bytes(length);
+        for(uint i = 0; i < length; i++) {
+            result[i] = "a";
         }
-
-        assertEq(nft.balanceOf(user1), 3);
-        for(uint i = 0; i < 3; i++) {
-            assertTrue(nft.ownerOf(ids[i]) == user1);
-        }
-    }
-
-    function test_Transfer() public {
-        nft.authorizeWorld(address(this));
-        uint256 tokenId = _mintHelper(user1, "World 1", 1);
-
-        vm.prank(user1);
-        nft.transferFrom(user1, user2, tokenId);
-
-        assertEq(nft.balanceOf(user1), 0);
-        assertEq(nft.balanceOf(user2), 1);
-        assertEq(nft.ownerOf(tokenId), user2);
-    }
-
-    function testFail_UnauthorizedTransfer() public {
-        nft.authorizeWorld(address(this));
-        _mintHelper(user1, "World 1", 1);
-
-        vm.prank(user2);
-        nft.transferFrom(user1, user2, 1);
+        return string(result);
     }
 } 

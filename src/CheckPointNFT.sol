@@ -10,23 +10,26 @@ contract CheckPointNFT is ERC721, Ownable {
     using Strings for uint256;
     
     event CheckpointUpdated(uint256 indexed tokenId, address indexed updater);
+    event WorldAuthorized(address indexed worldAddress);
+    event WorldRevoked(address indexed worldAddress);
+    event CheckpointMinted(uint256 indexed tokenId, address indexed player, address indexed world);
     
     uint256 private _nextTokenId;
     string private _baseTokenURI;
 
-    // Update struct to store checkpoint data
+    // Update struct to store checkpoint data with optimized uint sizes
     struct CheckpointData {
         string worldName;
-        uint256 levelNumber;
-        uint256 levelPercentage;
-        uint256 playerScore;
-        uint256 health;
-        uint256 shield;
+        uint16 levelNumber;      // Max 1000, fits in uint16 (max 65,535)
+        uint8 levelPercentage;   // Max 100, fits in uint8 (max 255)
+        uint128 playerScore;     // Likely doesn't need full uint256
+        uint16 health;          // Max 10000, fits in uint16
+        uint16 soul;           // Max 100, fits in uint16 (but displays as max 3 in OpenSea)
         string[] weapons;
         string[] items;
-        uint256 timePlayed;
-        uint256 kills;
-        uint256 boosters;
+        uint32 timePlayed;      // Can store up to ~136 years in seconds
+        uint32 kills;           // Unlikely to exceed 4.2 billion
+        uint16 boosters;        // Max 1000, fits in uint16
     }
 
     // Mapping from token ID to checkpoint data
@@ -42,14 +45,14 @@ contract CheckPointNFT is ERC721, Ownable {
         _locked = false;
     }
 
-    // Input validation constants
-    uint256 private constant MAX_WEAPONS_ARRAY_LENGTH = 20;  // Maximum items in weapons arrays
-    uint256 private constant MAX_ITEMS_ARRAY_LENGTH = 1000;  // Maximum items in items arrays
-    uint256 private constant MAX_BOOSTERS = 1000;  // Maximum boosters arrays
-    uint256 private constant MAX_STRING_LENGTH = 100; // Maximum characters in strings
-    uint256 private constant MAX_HEALTH = 10000;
-    uint256 private constant MAX_SHIELD = 10000;
-    uint256 private constant MAX_LEVEL = 1000;
+    // Update the input validation constants to match the new types
+    uint16 private constant MAX_WEAPONS_ARRAY_LENGTH = 20;
+    uint16 private constant MAX_ITEMS_ARRAY_LENGTH = 1000;
+    uint16 private constant MAX_BOOSTERS = 10;
+    uint8 private constant MAX_STRING_LENGTH = 100;
+    uint16 private constant MAX_HEALTH = 10000;
+    uint16 private constant MAX_SOUL = 100;  // Internal limit is 100, but display max is 3
+    uint16 private constant MAX_LEVEL = 1000;
 
     constructor(string memory baseTokenURI) ERC721("CheckPoint", "CPT") Ownable(msg.sender) {
         _baseTokenURI = baseTokenURI;
@@ -57,30 +60,49 @@ contract CheckPointNFT is ERC721, Ownable {
 
     function authorizeWorld(address worldAddress) external onlyOwner {
         authorizedWorlds[worldAddress] = true;
+        emit WorldAuthorized(worldAddress);
     }
 
     function revokeWorld(address worldAddress) external onlyOwner {
         authorizedWorlds[worldAddress] = false;
+        emit WorldRevoked(worldAddress);
     }
 
     function mintCheckpoint(
-        address player,
         string memory worldName,
-        uint256 levelNumber,
-        uint256 levelPercentage,
-        uint256 playerScore,
-        uint256 health,
-        uint256 shield,
+        uint16 levelNumber,
+        uint8 levelPercentage,
+        uint128 playerScore,
+        uint16 health,
+        uint16 soul,
         string[] memory weapons,
         string[] memory items,
-        uint256 timePlayed,
-        uint256 kills,
-        uint256 boosters
+        uint32 timePlayed,
+        uint32 kills,
+        uint16 boosters
     ) external returns (uint256) {
         require(authorizedWorlds[msg.sender], "Only authorized worlds can mint checkpoints");
         
+        // Add input validation
+        require(bytes(worldName).length <= MAX_STRING_LENGTH, "World name too long");
+        require(levelNumber <= MAX_LEVEL, "Level number too high");
+        require(levelPercentage <= 100, "Invalid level percentage");
+        require(health <= MAX_HEALTH, "Health value too high");
+        require(soul <= MAX_SOUL, "Soul value too high");
+        require(weapons.length <= MAX_WEAPONS_ARRAY_LENGTH, "Too many weapons");
+        require(items.length <= MAX_ITEMS_ARRAY_LENGTH, "Too many items");
+        require(boosters <= MAX_BOOSTERS, "Too many boosters");
+
+        // Validate array contents
+        for(uint i = 0; i < weapons.length; i++) {
+            require(bytes(weapons[i]).length <= MAX_STRING_LENGTH, "Weapon name too long");
+        }
+        for(uint i = 0; i < items.length; i++) {
+            require(bytes(items[i]).length <= MAX_STRING_LENGTH, "Item name too long");
+        }
+        
         uint256 tokenId = _nextTokenId++;
-        _safeMint(player, tokenId);
+        _safeMint(tx.origin, tokenId);
         
         checkpoints[tokenId] = CheckpointData({
             worldName: worldName,
@@ -88,7 +110,7 @@ contract CheckPointNFT is ERC721, Ownable {
             levelPercentage: levelPercentage,
             playerScore: playerScore,
             health: health,
-            shield: shield,
+            soul: soul,
             weapons: weapons,
             items: items,
             timePlayed: timePlayed,
@@ -96,6 +118,7 @@ contract CheckPointNFT is ERC721, Ownable {
             boosters: boosters
         });
 
+        emit CheckpointMinted(tokenId, tx.origin, msg.sender);
         return tokenId;
     }
 
@@ -112,41 +135,79 @@ contract CheckPointNFT is ERC721, Ownable {
         require(_ownerOf(tokenId) != address(0), "Token does not exist");
         CheckpointData memory checkpoint = checkpoints[tokenId];
         
-        return string(abi.encodePacked(
-            'data:application/json;base64,',
-            Base64.encode(bytes(abi.encodePacked(
-                '{"name": "Checkpoint #', 
-                tokenId.toString(),
-                '", "description": "Game checkpoint in ', 
-                checkpoint.worldName,
-                '", "image": "', 
-                _baseURI(),  // Use the base URI for image
-                '", "attributes": [',
-                    '{"trait_type": "Level", "value": ', checkpoint.levelNumber.toString(), '},',
-                    '{"trait_type": "Progress", "value": ', checkpoint.levelPercentage.toString(), '},',
-                    '{"trait_type": "Score", "value": ', checkpoint.playerScore.toString(), '},',
-                    '{"trait_type": "Health", "value": ', checkpoint.health.toString(), '},',
-                    '{"trait_type": "Shield", "value": ', checkpoint.shield.toString(), '},',
-                    '{"trait_type": "Time Played", "value": ', checkpoint.timePlayed.toString(), '},',
-                    '{"trait_type": "Kills", "value": ', checkpoint.kills.toString(), '}',
-                ']}'
-            )))
+        // Pre-allocate strings with approximate sizes
+        string[] memory attributes = new string[](9 + checkpoint.weapons.length + checkpoint.items.length);
+        uint256 index = 0;
+        
+        // Add base attributes
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "World", "value": "', checkpoint.worldName, '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Level", "value": "', uint256(checkpoint.levelNumber).toString(), '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Level Percentage", "value": ', uint256(checkpoint.levelPercentage).toString(), '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Score", "value": "', uint256(checkpoint.playerScore).toString(), '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Health", "value": ', uint256(checkpoint.health).toString(), '}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Soul", "value": ', uint256(checkpoint.soul).toString(), '}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Time Played", "value": "', uint256(checkpoint.timePlayed).toString(), '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Kills", "value": "', uint256(checkpoint.kills).toString(), '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Boosters x", "value": "', uint256(checkpoint.boosters).toString(), '"}'));
+
+        // Add weapons
+        for (uint i = 0; i < checkpoint.weapons.length; i++) {
+            attributes[index++] = string(abi.encodePacked(
+                '{"trait_type": "Weapon ', 
+                (i + 1).toString(), 
+                '", "value": "', 
+                checkpoint.weapons[i],
+                '"}'
+            ));
+        }
+
+        // Add items
+        for (uint i = 0; i < checkpoint.items.length; i++) {
+            attributes[index++] = string(abi.encodePacked(
+                '{"trait_type": "Item ', 
+                (i + 1).toString(), 
+                '", "value": "', 
+                checkpoint.items[i],
+                '"}'
+            ));
+        }
+
+        // Join all attributes with commas
+        string memory attributesJson = '';
+        for (uint i = 0; i < attributes.length; i++) {
+            if (i > 0) attributesJson = string.concat(attributesJson, ',');
+            attributesJson = string.concat(attributesJson, attributes[i]);
+        }
+        
+        // Construct the final JSON
+        string memory json = string(abi.encodePacked(
+            '{"name": "Checkpoint #', 
+            tokenId.toString(),
+            '", "description": "Game checkpoint in ', 
+            checkpoint.worldName,
+            '", "image": "', 
+            _baseURI(),
+            '", "attributes": [',
+            attributesJson,
+            ']}'
         ));
+
+        return string(abi.encodePacked('data:application/json;base64,', Base64.encode(bytes(json))));
     }
 
     function updateCheckpointData(
         uint256 tokenId,
         string memory worldName,
-        uint256 levelNumber,
-        uint256 levelPercentage,
-        uint256 playerScore,
-        uint256 health,
-        uint256 shield,
+        uint16 levelNumber,
+        uint8 levelPercentage,
+        uint128 playerScore,
+        uint16 health,
+        uint16 soul,
         string[] memory weapons,
         string[] memory items,
-        uint256 timePlayed,
-        uint256 kills,
-        uint256 boosters
+        uint32 timePlayed,
+        uint32 kills,
+        uint16 boosters
     ) external nonReentrant {
         require(authorizedWorlds[msg.sender], "Only authorized worlds can update checkpoints");
         require(tx.origin == ownerOf(tokenId), "Transaction must be initiated by token owner");
@@ -156,7 +217,7 @@ contract CheckPointNFT is ERC721, Ownable {
         require(levelNumber <= MAX_LEVEL, "Level number too high");
         require(levelPercentage <= 100, "Invalid level percentage");
         require(health <= MAX_HEALTH, "Health value too high");
-        require(shield <= MAX_SHIELD, "Shield value too high");
+        require(soul <= MAX_SOUL, "Soul value too high");
         require(weapons.length <= MAX_WEAPONS_ARRAY_LENGTH, "Too many weapons");
         require(items.length <= MAX_ITEMS_ARRAY_LENGTH, "Too many items");
         require(boosters <= MAX_BOOSTERS, "Too many boosters");
@@ -175,7 +236,7 @@ contract CheckPointNFT is ERC721, Ownable {
             levelPercentage: levelPercentage,
             playerScore: playerScore,
             health: health,
-            shield: shield,
+            soul: soul,
             weapons: weapons,
             items: items,
             timePlayed: timePlayed,
