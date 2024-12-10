@@ -24,7 +24,7 @@ contract CheckPointNFT is ERC721, Ownable {
         uint8 levelPercentage;   // Max 100, fits in uint8 (max 255)
         uint128 playerScore;     // Likely doesn't need full uint256
         uint16 health;          // Max 10000, fits in uint16
-        uint16 soul;           // Max 100, fits in uint16 (but displays as max 3 in OpenSea)
+        uint16 souls;           // Max 100, fits in uint16 (but displays as max 3 in OpenSea)
         string[] weapons;
         string[] items;
         uint32 timePlayed;      // Can store up to ~136 years in seconds
@@ -51,7 +51,7 @@ contract CheckPointNFT is ERC721, Ownable {
     uint16 private constant MAX_BOOSTERS = 10;
     uint8 private constant MAX_STRING_LENGTH = 100;
     uint16 private constant MAX_HEALTH = 10000;
-    uint16 private constant MAX_SOUL = 100;  // Internal limit is 100, but display max is 3
+    uint16 private constant MAX_SOULS = 100;  // Internal limit is 100, but display max is 3
     uint16 private constant MAX_LEVEL = 1000;
 
     constructor(string memory baseTokenURI) ERC721("CheckPoint", "CPT") Ownable(msg.sender) {
@@ -74,31 +74,31 @@ contract CheckPointNFT is ERC721, Ownable {
         uint8 levelPercentage,
         uint128 playerScore,
         uint16 health,
-        uint16 soul,
+        uint16 souls,
         string[] memory weapons,
         string[] memory items,
         uint32 timePlayed,
         uint32 kills,
         uint16 boosters
-    ) external returns (uint256) {
+    ) external nonReentrant returns (uint256) {
         require(authorizedWorlds[msg.sender], "Only authorized worlds can mint checkpoints");
         
         // Add input validation
-        require(bytes(worldName).length <= MAX_STRING_LENGTH, "World name too long");
-        require(levelNumber <= MAX_LEVEL, "Level number too high");
+        require(bytes(worldName).length <= MAX_STRING_LENGTH, "World name exceeds maximum length");
+        require(levelNumber <= MAX_LEVEL, "Level number exceeds maximum value");
         require(levelPercentage <= 100, "Invalid level percentage");
-        require(health <= MAX_HEALTH, "Health value too high");
-        require(soul <= MAX_SOUL, "Soul value too high");
-        require(weapons.length <= MAX_WEAPONS_ARRAY_LENGTH, "Too many weapons");
-        require(items.length <= MAX_ITEMS_ARRAY_LENGTH, "Too many items");
-        require(boosters <= MAX_BOOSTERS, "Too many boosters");
+        require(health <= MAX_HEALTH, "Health value exceeds maximum limit");
+        require(souls <= MAX_SOULS, "Souls value exceeds maximum limit");
+        require(weapons.length <= MAX_WEAPONS_ARRAY_LENGTH, "Weapons array exceeds maximum length");
+        require(items.length <= MAX_ITEMS_ARRAY_LENGTH, "Items array exceeds maximum length");
+        require(boosters <= MAX_BOOSTERS, "Boosters value exceeds maximum limit");
 
         // Validate array contents
         for(uint i = 0; i < weapons.length; i++) {
-            require(bytes(weapons[i]).length <= MAX_STRING_LENGTH, "Weapon name too long");
+            require(bytes(weapons[i]).length <= MAX_STRING_LENGTH, "Weapon name exceeds maximum length");
         }
         for(uint i = 0; i < items.length; i++) {
-            require(bytes(items[i]).length <= MAX_STRING_LENGTH, "Item name too long");
+            require(bytes(items[i]).length <= MAX_STRING_LENGTH, "Item name exceeds maximum length");
         }
         
         uint256 tokenId = _nextTokenId++;
@@ -110,7 +110,7 @@ contract CheckPointNFT is ERC721, Ownable {
             levelPercentage: levelPercentage,
             playerScore: playerScore,
             health: health,
-            soul: soul,
+            souls: souls,
             weapons: weapons,
             items: items,
             timePlayed: timePlayed,
@@ -140,15 +140,33 @@ contract CheckPointNFT is ERC721, Ownable {
         uint256 index = 0;
         
         // Add base attributes
-        attributes[index++] = string(abi.encodePacked('{"trait_type": "World", "value": "', checkpoint.worldName, '"}'));
-        attributes[index++] = string(abi.encodePacked('{"trait_type": "Level", "value": "', uint256(checkpoint.levelNumber).toString(), '"}'));
-        attributes[index++] = string(abi.encodePacked('{"trait_type": "Level Percentage", "value": ', uint256(checkpoint.levelPercentage).toString(), '"}'));
-        attributes[index++] = string(abi.encodePacked('{"trait_type": "Score", "value": "', uint256(checkpoint.playerScore).toString(), '"}'));
-        attributes[index++] = string(abi.encodePacked('{"trait_type": "Health", "value": ', uint256(checkpoint.health).toString(), '}'));
-        attributes[index++] = string(abi.encodePacked('{"trait_type": "Soul", "value": ', uint256(checkpoint.soul).toString(), '}'));
-        attributes[index++] = string(abi.encodePacked('{"trait_type": "Time Played", "value": "', uint256(checkpoint.timePlayed).toString(), '"}'));
-        attributes[index++] = string(abi.encodePacked('{"trait_type": "Kills", "value": "', uint256(checkpoint.kills).toString(), '"}'));
-        attributes[index++] = string(abi.encodePacked('{"trait_type": "Boosters x", "value": "', uint256(checkpoint.boosters).toString(), '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "World Name", "value": "', 
+            checkpoint.worldName, 
+        '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Level", "value": "', 
+            uint256(checkpoint.levelNumber).toString(), 
+        '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Level Percentage", "value": "', 
+            uint256(checkpoint.levelPercentage).toString(), 
+        '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Score", "value": "', 
+            uint256(checkpoint.playerScore).toString(), 
+        '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Health", "value": "', 
+            uint256(checkpoint.health).toString(), 
+        '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "souls", "value": "', 
+            uint256(checkpoint.souls).toString(), 
+        '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Time Played", "value": "', 
+            uint256(checkpoint.timePlayed).toString(), 
+        '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Kills", "value": "', 
+            uint256(checkpoint.kills).toString(), 
+        '"}'));
+        attributes[index++] = string(abi.encodePacked('{"trait_type": "Boosters", "value": "x', 
+            uint256(checkpoint.boosters).toString(), 
+        '"}'));
 
         // Add weapons
         for (uint i = 0; i < checkpoint.weapons.length; i++) {
@@ -164,10 +182,10 @@ contract CheckPointNFT is ERC721, Ownable {
         // Add items
         for (uint i = 0; i < checkpoint.items.length; i++) {
             attributes[index++] = string(abi.encodePacked(
-                '{"trait_type": "Item ', 
-                (i + 1).toString(), 
-                '", "value": "', 
-                checkpoint.items[i],
+                '{"trait_type": "Item ',
+                (i + 1).toString(),
+                '", "value": "',
+                checkpoint.items[i], 
                 '"}'
             ));
         }
@@ -183,9 +201,10 @@ contract CheckPointNFT is ERC721, Ownable {
         string memory json = string(abi.encodePacked(
             '{"name": "Checkpoint #', 
             tokenId.toString(),
-            '", "description": "Game checkpoint in ', 
-            checkpoint.worldName,
-            '", "image": "', 
+            '", "description": "Checkpoints are used to save progress at certain points. ' 
+            'If the player fails or exits the game, they can resume from the last checkpoint ' 
+            'rather than starting over from the beginning", ',
+            '"image": "', 
             _baseURI(),
             '", "attributes": [',
             attributesJson,
@@ -202,7 +221,7 @@ contract CheckPointNFT is ERC721, Ownable {
         uint8 levelPercentage,
         uint128 playerScore,
         uint16 health,
-        uint16 soul,
+        uint16 souls,
         string[] memory weapons,
         string[] memory items,
         uint32 timePlayed,
@@ -213,21 +232,23 @@ contract CheckPointNFT is ERC721, Ownable {
         require(tx.origin == ownerOf(tokenId), "Transaction must be initiated by token owner");
         
         // Input validation
-        require(bytes(worldName).length <= MAX_STRING_LENGTH, "World name too long");
-        require(levelNumber <= MAX_LEVEL, "Level number too high");
+        require(bytes(worldName).length <= MAX_STRING_LENGTH, "World name exceeds maximum length");
+        require(levelNumber <= MAX_LEVEL, "Level number exceeds maximum value");
         require(levelPercentage <= 100, "Invalid level percentage");
-        require(health <= MAX_HEALTH, "Health value too high");
-        require(soul <= MAX_SOUL, "Soul value too high");
-        require(weapons.length <= MAX_WEAPONS_ARRAY_LENGTH, "Too many weapons");
-        require(items.length <= MAX_ITEMS_ARRAY_LENGTH, "Too many items");
-        require(boosters <= MAX_BOOSTERS, "Too many boosters");
+        require(health <= MAX_HEALTH, "Health value exceeds maximum limit");
+        require(souls <= MAX_SOULS, "Souls value exceeds maximum limit");
+        
+        // Add input validation for array lengths
+        require(weapons.length <= MAX_WEAPONS_ARRAY_LENGTH, "Weapons array exceeds maximum length");
+        require(items.length <= MAX_ITEMS_ARRAY_LENGTH, "Items array exceeds maximum length");
+        require(boosters <= MAX_BOOSTERS, "Boosters value exceeds maximum limit");
 
         // Validate array contents
         for(uint i = 0; i < weapons.length; i++) {
-            require(bytes(weapons[i]).length <= MAX_STRING_LENGTH, "Weapon name too long");
+            require(bytes(weapons[i]).length <= MAX_STRING_LENGTH, "Weapon name exceeds maximum length");
         }
         for(uint i = 0; i < items.length; i++) {
-            require(bytes(items[i]).length <= MAX_STRING_LENGTH, "Item name too long");
+            require(bytes(items[i]).length <= MAX_STRING_LENGTH, "Item name exceeds maximum length");
         }
         
         checkpoints[tokenId] = CheckpointData({
@@ -236,7 +257,7 @@ contract CheckPointNFT is ERC721, Ownable {
             levelPercentage: levelPercentage,
             playerScore: playerScore,
             health: health,
-            soul: soul,
+            souls: souls,
             weapons: weapons,
             items: items,
             timePlayed: timePlayed,

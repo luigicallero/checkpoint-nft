@@ -49,15 +49,14 @@ contract CheckPointNFTTest is Test {
         items[0] = "Health Potion";
         items[1] = "Mana Potion";
 
-        vm.prank(authorizedWorld);
+        vm.prank(authorizedWorld, player);
         uint256 tokenId = nft.mintCheckpoint(
-            player,
             "TestWorld",
             1,
             50,
             1000,
             100,
-            100,
+            100, // Added missing argument for souls
             weapons,
             items,
             3600,
@@ -83,15 +82,14 @@ contract CheckPointNFTTest is Test {
         string[] memory items = new string[](1);
         items[0] = "Potion";
 
-        vm.prank(authorizedWorld);
+        vm.prank(authorizedWorld, player);
         uint256 tokenId = nft.mintCheckpoint(
-            player,
             "TestWorld",
             1,
             50,
             1000,
             100,
-            100,
+            2,
             weapons,
             items,
             3600,
@@ -117,7 +115,7 @@ contract CheckPointNFTTest is Test {
             75,
             2000,
             200,
-            200,
+            2,
             newWeapons,
             newItems,
             7200,
@@ -141,13 +139,12 @@ contract CheckPointNFTTest is Test {
 
         vm.prank(makeAddr("unauthorized"));
         nft.mintCheckpoint(
-            player,
             "TestWorld",
             1,
             50,
             1000,
             100,
-            100,
+            100, // Added missing argument for souls
             weapons,
             items,
             3600,
@@ -161,15 +158,14 @@ contract CheckPointNFTTest is Test {
         string[] memory items = new string[](1);
 
         vm.prank(authorizedWorld);
-        vm.expectRevert("Too many weapons");
+        vm.expectRevert("Weapons array exceeds maximum length");
         nft.mintCheckpoint(
-            player,
             "TestWorld",
             1,
             50,
             1000,
             100,
-            100,
+            100, // Added missing argument for souls
             weapons,
             items,
             3600,
@@ -180,9 +176,8 @@ contract CheckPointNFTTest is Test {
         // Test other validation cases
         weapons = new string[](1);
         vm.prank(authorizedWorld);
-        vm.expectRevert("Level number too high");
+        vm.expectRevert("Level number exceeds maximum value");
         nft.mintCheckpoint(
-            player,
             "TestWorld",
             1001, // MAX_LEVEL + 1
             50,
@@ -205,7 +200,6 @@ contract CheckPointNFTTest is Test {
 
         vm.prank(authorizedWorld);
         uint256 tokenId = nft.mintCheckpoint(
-            player,
             "TestWorld",
             1,
             50,

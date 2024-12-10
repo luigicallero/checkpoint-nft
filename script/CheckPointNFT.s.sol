@@ -6,7 +6,7 @@ import {CheckPointNFT} from "../src/CheckPointNFT.sol";
 import {console} from "forge-std/console.sol";
 
 contract CheckPointNFTScript is Script {
-    string constant BASE_IMAGE_URI = "ipfs://QmQxYG2QAngFrGt3DRbtZUfGS5rL9B1ztGeZgM42K1Xvqg";
+    string constant BASE_IMAGE_URI = "ipfs://QmYveRKKGN4KSeXudM1fW1rnAzKcjQvKgP9xbEsP44vxph";
 
     function setUp() public {}
 

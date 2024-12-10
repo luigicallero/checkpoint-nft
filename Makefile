@@ -3,7 +3,9 @@
 .PHONY: deploy
 
 #deploy :; @forge script script/CheckPointNFT.s.sol:CheckPointNFTScript --account test-wallet --rpc-url ${SEPOLIA_RPC_URL} --etherscan-api-key ${ETHERSCAN_API_KEY} --priority-gas-price 1 --verify --broadcast
-deploy :; @forge script script/CheckPointNFT.s.sol:CheckPointNFTScript --account test-wallet --rpc-url ${SHAPE_SEPOLIA_RPC_URL} --priority-gas-price 1 --broadcast
+deploy :; @forge script script/CheckPointNFT.s.sol:CheckPointNFTScript \
+  --account test-wallet --rpc-url ${SHAPE_SEPOLIA_RPC_URL} \
+  --priority-gas-price 1 --broadcast
 #--rpc-url ${SEPOLIA_RPC_URL} --etherscan-api-key ${ETHERSCAN_API_KEY} --priority-gas-price 1 --verify --broadcast
 
 verify :; @forge verify-contract \
@@ -19,7 +21,7 @@ verify :; @forge verify-contract \
 mint :; @cast send --account test-wallet --rpc-url ${SEPOLIA_RPC_URL} ${CONTRACT_ADDRESS} "mint()" --priority-gas-price 1
 
 # View total supply
-supply :; @cast call --rpc-url ${SEPOLIA_RPC_URL} ${CONTRACT_ADDRESS} "totalSupply()"
+supply :; @cast call --rpc-url ${SHAPE_SEPOLIA_RPC_URL} ${SHAPE_SEPOLIA_CONTRACT_ADDRESS} "balanceOf(address)" "0xEBd4d0B170DB82b91506c5a6895D70b6a509d976"
 
 # View token URI (Usage: make uri TOKEN_ID=1)
 uri :; @cast call --rpc-url ${SEPOLIA_RPC_URL} ${CONTRACT_ADDRESS} "tokenURI(uint256)" $(TOKEN_ID)
